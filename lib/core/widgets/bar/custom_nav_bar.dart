@@ -1,0 +1,110 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+
+class CustomNavBar extends StatelessWidget {
+  final int currentIndex;
+  final Function(int) onTap;
+
+  const CustomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          height: 85,
+          decoration: BoxDecoration(
+            // 降低不透明度，使背景模糊效果可见
+            color: const Color(0xFF03081C).withOpacity(0.8),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withOpacity(0.1),
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, '首页', Icons.home_rounded),
+                _buildNavItem(1, '创建', Icons.add_circle_outline),
+                _buildNavItem(2, '发现', Icons.explore_outlined),
+                _buildNavItem(3, '消息', Icons.chat_bubble_outline, hasBadge: true),
+                _buildNavItem(4, '我的', Icons.person_outline),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, String label, IconData defaultIcon, {bool hasBadge = false}) {
+    final bool isSelected = currentIndex == index;
+    final Color activeColor = const Color(0xFF00C6FF); // 亮青色
+    final Color inactiveColor = const Color(0xFF5E6A81); // 灰色调
+
+    return GestureDetector(
+      onTap: () => onTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 预留位：如果您之后有本地图片，可以在这里用 Image.asset 替换 Icon
+              Icon(
+                defaultIcon,
+                size: 28,
+                color: isSelected ? activeColor : inactiveColor,
+                shadows: isSelected ? [
+                  Shadow(
+                    color: activeColor.withOpacity(0.8),
+                    blurRadius: 15,
+                  ),
+                ] : null,
+              ),
+              if (hasBadge)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF03081C), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.5),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? activeColor : inactiveColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
