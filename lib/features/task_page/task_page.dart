@@ -5,7 +5,16 @@ class TaskPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox.shrink();
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.assignment_outlined, color: Colors.white24, size: 64),
+          SizedBox(height: 16),
+          Text('暂无任务', style: TextStyle(color: Colors.white24, fontSize: 16)),
+        ],
+      ),
+    );
 
     // return Scaffold(
     //   backgroundColor: Colors.transparent,
