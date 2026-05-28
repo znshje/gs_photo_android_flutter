@@ -17,8 +17,10 @@ class RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Container(
-      margin: const EdgeInsets.all(8.0),
+      margin: EdgeInsets.all(screenWidth * 0.02),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -50,36 +52,36 @@ class RecommendationCard extends StatelessWidget {
                   },
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: EdgeInsets.all(screenWidth * 0.03),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: screenWidth * 0.038,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: screenWidth * 0.015),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.account_circle_outlined,
-                            size: 14,
-                            color: Color(0xFF00C6FF),
+                            size: screenWidth * 0.035,
+                            color: const Color(0xFF00C6FF),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: screenWidth * 0.01),
                           Expanded(
                             child: Text(
                               userId,
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.6),
-                                fontSize: 12,
+                                fontSize: screenWidth * 0.03,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

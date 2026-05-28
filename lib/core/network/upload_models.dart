@@ -41,6 +41,13 @@ class UploadInitResponse {
     totalChunks: json['total_chunks'],
     expiresAt: DateTime.parse(json['expires_at']),
   );
+  Map<String, dynamic> toJson() => {
+    'upload_id': uploadId,
+    'chunk_size': chunkSize,
+    'total_chunks': totalChunks,
+    // 注意：DateTime 类型必须转成字符串（推荐 ISO8601 格式），否则 jsonEncode 依然会报错
+    'expires_at': expiresAt.toIso8601String(),
+  };
 }
 
 class ChunkResponse {
@@ -122,7 +129,7 @@ class MergeRequest {
 }
 
 class MergeResponse {
-  final int fileId;
+  final String fileId;
   final String fileHash;
   final String storageKey;
   final bool verified;

@@ -112,14 +112,17 @@ class _CustomCarouselState extends State<CustomCarousel> {
   }
 
   Widget _buildIndicator(bool isActive) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final indicatorHeight = screenWidth * 0.02;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      height: 8,
-      width: isActive ? 24 : 8,
+      height: indicatorHeight,
+      width: isActive ? indicatorHeight * 3 : indicatorHeight,
       decoration: BoxDecoration(
         color: isActive ? const Color(0xFF00C6FF) : Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(indicatorHeight / 2),
       ),
     );
   }

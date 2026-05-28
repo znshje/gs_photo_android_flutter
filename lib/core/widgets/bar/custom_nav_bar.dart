@@ -13,11 +13,13 @@ class CustomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          height: 85,
+          height: screenHeight * 0.11, // 从 0.1 增加到 0.11，提供更多缓冲
           decoration: BoxDecoration(
             // 降低不透明度，使背景模糊效果可见
             color: const Color(0xFF03081C).withOpacity(0.8),
@@ -32,11 +34,10 @@ class CustomNavBar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, '首页', Icons.home_rounded),
-                _buildNavItem(1, '创建', Icons.add_circle_outline),
-                _buildNavItem(2, '发现', Icons.explore_outlined),
-                _buildNavItem(3, '消息', Icons.chat_bubble_outline, hasBadge: true),
-                _buildNavItem(4, '我的', Icons.person_outline),
+                _buildNavItem(context, 0, '首页', Icons.home_rounded),
+                _buildNavItem(context, 1, "任务", Icons.task),
+                _buildNavItem(context, 2, '发现', Icons.explore_outlined),
+                _buildNavItem(context, 3, '我的', Icons.person_outline),
               ],
             ),
           ),
@@ -45,8 +46,9 @@ class CustomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index, String label, IconData defaultIcon, {bool hasBadge = false}) {
+  Widget _buildNavItem(BuildContext context, int index, String label, IconData defaultIcon, {bool hasBadge = false}) {
     final bool isSelected = currentIndex == index;
+    final screenWidth = MediaQuery.of(context).size.width;
     final Color activeColor = const Color(0xFF00C6FF); // 亮青色
     final Color inactiveColor = const Color(0xFF5E6A81); // 灰色调
 
@@ -56,14 +58,13 @@ class CustomNavBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 8),
+          SizedBox(height: screenWidth * 0.02),
           Stack(
             clipBehavior: Clip.none,
             children: [
-              // 预留位：如果您之后有本地图片，可以在这里用 Image.asset 替换 Icon
               Icon(
                 defaultIcon,
-                size: 28,
+                size: screenWidth * 0.07,
                 color: isSelected ? activeColor : inactiveColor,
                 shadows: isSelected ? [
                   Shadow(
@@ -74,11 +75,11 @@ class CustomNavBar extends StatelessWidget {
               ),
               if (hasBadge)
                 Positioned(
-                  right: -2,
-                  top: -2,
+                  right: -screenWidth * 0.005,
+                  top: -screenWidth * 0.005,
                   child: Container(
-                    width: 10,
-                    height: 10,
+                    width: screenWidth * 0.025,
+                    height: screenWidth * 0.025,
                     decoration: BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
@@ -94,11 +95,11 @@ class CustomNavBar extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: screenWidth * 0.01),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: screenWidth * 0.03,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               color: isSelected ? activeColor : inactiveColor,
             ),

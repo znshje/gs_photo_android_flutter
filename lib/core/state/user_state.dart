@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 class UserState with ChangeNotifier {
+  // 单例模式，方便非 Widget 类访问
+  static final UserState instance = UserState._internal();
+  UserState._internal();
+  factory UserState() => instance;
+
   String? _username;
   String? _token;
   bool _isLoggedIn = false;

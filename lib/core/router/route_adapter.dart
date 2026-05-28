@@ -63,16 +63,16 @@ class RouteAdapter {
               ],
             ),
             // 消息分支 (目前占位)
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: messageTabPath,
-                  builder: (context, state) => const Center(
-                    child: Text('消息界面', style: TextStyle(color: Colors.white, fontSize: 24)),
-                  ),
-                ),
-              ],
-            ),
+            // StatefulShellBranch(
+            //   routes: [
+            //     GoRoute(
+            //       path: messageTabPath,
+            //       builder: (context, state) => const Center(
+            //         child: Text('消息界面', style: TextStyle(color: Colors.white, fontSize: 24)),
+            //       ),
+            //     ),
+            //   ],
+            // ),
             // 我的分支
             StatefulShellBranch(
               routes: [

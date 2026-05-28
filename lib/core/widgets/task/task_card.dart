@@ -22,7 +22,7 @@ class TaskCard extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      margin: EdgeInsets.symmetric(vertical: screenWidth * 0.025),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
@@ -42,20 +42,20 @@ class TaskCard extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            padding: const EdgeInsets.all(16), // 稍微减小内边距以节省空间
+            padding: EdgeInsets.all(screenWidth * 0.04), // 稍微减小内边距以节省空间
             color: const Color(0xFF03081C).withValues(alpha: 0.6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '任务进行中',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16, // 稍微减小字号
+                    fontSize: screenWidth * 0.04, // 稍微减小字号
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 15),
+                SizedBox(height: screenWidth * 0.035),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -69,7 +69,7 @@ class TaskCard extends StatelessWidget {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    const SizedBox(width: 15),
+                    SizedBox(width: screenWidth * 0.04),
                     // 右侧内容
                     Expanded(
                       child: Column(
@@ -77,26 +77,26 @@ class TaskCard extends StatelessWidget {
                         children: [
                           Text(
                             title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: screenWidth * 0.04,
                               fontWeight: FontWeight.bold,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: screenWidth * 0.015),
                           Text(
                             '$statusText ${(progress * 100).toInt()}%',
-                            style: const TextStyle(
-                              color: Color(0xFF00C6FF),
-                              fontSize: 14,
+                            style: TextStyle(
+                              color: const Color(0xFF00C6FF),
+                              fontSize: screenWidth * 0.035,
                             ),
                           ),
-                          const SizedBox(height: 10),
+                          SizedBox(height: screenWidth * 0.025),
                           // 进度条
                           Container(
-                            height: 4, // 减细一点更精致
+                            height: screenWidth * 0.01, // 减细一点更精致
                             width: double.infinity,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.1),
@@ -115,19 +115,19 @@ class TaskCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: screenWidth * 0.02),
                           Text(
                             '预计剩余 $timeRemaining',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 12,
+                              fontSize: screenWidth * 0.03,
                             ),
                           ),
                         ],
                       ),
                     ),
                     // 右侧装饰图
-                    const SizedBox(width: 8),
+                    SizedBox(width: screenWidth * 0.02),
                     _buildDecorativeRadar(screenWidth),
                   ],
                 ),

@@ -126,6 +126,7 @@ class _SparkLocalViewerPageState extends State<SparkLocalViewerPage> {
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -163,8 +164,8 @@ class _SparkLocalViewerPageState extends State<SparkLocalViewerPage> {
 
             if (controller != null)
               Positioned(
-                right: 16,
-                bottom: 24,
+                right: screenWidth * 0.04,
+                bottom: screenWidth * 0.06,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -173,7 +174,7 @@ class _SparkLocalViewerPageState extends State<SparkLocalViewerPage> {
                       onPressed: _resetCamera,
                       child: const Icon(Icons.center_focus_strong),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: screenWidth * 0.03),
                     FloatingActionButton.small(
                       heroTag: 'auto_rotate',
                       onPressed: _toggleAutoRotate,
@@ -181,13 +182,13 @@ class _SparkLocalViewerPageState extends State<SparkLocalViewerPage> {
                         _autoRotate ? Icons.pause : Icons.threesixty,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: screenWidth * 0.03),
                     FloatingActionButton.small(
                       heroTag: 'rotate_only',
                       onPressed: _setRotateOnlyMode,
                       child: const Icon(Icons.screen_rotation),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: screenWidth * 0.03),
                     FloatingActionButton.small(
                       heroTag: 'free_view',
                       onPressed: _setFreeViewMode,

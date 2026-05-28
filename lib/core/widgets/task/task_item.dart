@@ -1,11 +1,13 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 class TaskItem extends StatelessWidget {
   final String title;
   final String creationTime;
   final String status;
-  final String thumbnailUrl;
+  final String? thumbnailUrl;
+  final String? localThumbnailPath;
   final VoidCallback onView;
   final VoidCallback onDelete;
 
@@ -14,15 +16,25 @@ class TaskItem extends StatelessWidget {
     required this.title,
     required this.creationTime,
     required this.status,
-    required this.thumbnailUrl,
+    this.thumbnailUrl,
+    this.localThumbnailPath,
     required this.onView,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    ImageProvider? imageProvider;
+    if (localThumbnailPath != null && localThumbnailPath!.isNotEmpty) {
+      imageProvider = FileImage(File(localThumbnailPath!));
+    } else if (thumbnailUrl != null && thumbnailUrl!.isNotEmpty) {
+      imageProvider = NetworkImage(thumbnailUrl!);
+    }
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: EdgeInsets.symmetric(vertical: screenWidth * 0.02, horizontal: screenWidth * 0.04),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
@@ -35,7 +47,7 @@ class TaskItem extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(screenWidth * 0.03),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF).withOpacity(0.05),
               gradient: LinearGradient(
@@ -51,18 +63,19 @@ class TaskItem extends StatelessWidget {
               children: [
                 // 1. 缩略图区域
                 Container(
-                  width: 90,
-                  height: 90,
+                  width: screenWidth * 0.22,
+                  height: screenWidth * 0.22,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: const Color(0xFF00C6FF).withOpacity(0.3),
                       width: 1.5,
                     ),
-                    image: DecorationImage(
-                      image: NetworkImage(thumbnailUrl),
+                    image: imageProvider != null ? DecorationImage(
+                      image: imageProvider,
                       fit: BoxFit.cover,
-                    ),
+                    ) : null,
+                    color: imageProvider == null ? Colors.white.withOpacity(0.1) : null,
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF00C6FF).withOpacity(0.1),
@@ -71,8 +84,9 @@ class TaskItem extends StatelessWidget {
                       ),
                     ],
                   ),
+                  child: imageProvider == null ? const Icon(Icons.image_not_supported_outlined, color: Colors.white24) : null,
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: screenWidth * 0.04),
                 
                 // 2. 信息展示区域
                 Expanded(
@@ -81,29 +95,29 @@ class TaskItem extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: screenWidth * 0.045,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: screenWidth * 0.015),
                       Text(
                         creationTime,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.5),
-                          fontSize: 13,
+                          fontSize: screenWidth * 0.032,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: screenWidth * 0.025),
                       Text(
                         status,
-                        style: const TextStyle(
-                          color: Color(0xFF00FFC2), // 霓虹绿
-                          fontSize: 14,
+                        style: TextStyle(
+                          color: const Color(0xFF00FFC2), // 霓虹绿
+                          fontSize: screenWidth * 0.035,
                           fontWeight: FontWeight.w600,
-                          shadows: [
+                          shadows: const [
                             Shadow(
                               color: Color(0xFF00FFC2),
                               blurRadius: 10,
@@ -119,14 +133,16 @@ class TaskItem extends StatelessWidget {
                 Column(
                   children: [
                     _buildActionButton(
+                      screenWidth: screenWidth,
                       label: '查看',
                       onPressed: onView,
                       gradient: const LinearGradient(
                         colors: [Color(0xFF00C6FF), Color(0xFF0072FF)],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: screenWidth * 0.025),
                     _buildActionButton(
+                      screenWidth: screenWidth,
                       label: '删除',
                       onPressed: onDelete,
                       gradient: const LinearGradient(
@@ -144,6 +160,7 @@ class TaskItem extends StatelessWidget {
   }
 
   Widget _buildActionButton({
+    required double screenWidth,
     required String label,
     required VoidCallback onPressed,
     required Gradient gradient,
@@ -151,8 +168,8 @@ class TaskItem extends StatelessWidget {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        width: 75,
-        height: 36,
+        width: screenWidth * 0.18,
+        height: screenWidth * 0.09,
         decoration: BoxDecoration(
           gradient: gradient,
           borderRadius: BorderRadius.circular(10),
@@ -167,9 +184,9 @@ class TaskItem extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: screenWidth * 0.035,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -178,3 +195,4 @@ class TaskItem extends StatelessWidget {
     );
   }
 }
+

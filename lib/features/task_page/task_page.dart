@@ -1,44 +1,65 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:provider/provider.dart';
 import '../../core/widgets/task/task_item.dart';
+import '../../core/state/task_state.dart';
+
 class TaskPage extends StatelessWidget {
   const TaskPage({super.key});
+
   @override
   Widget build(BuildContext context) {
+    return const SizedBox.shrink();
 
+    // return Scaffold(
+    //   backgroundColor: Colors.transparent,
+    //   body: SafeArea(
+    //     child: Consumer<TaskState>(
+    //       builder: (context, taskState, child) {
+    //         final tasks = taskState.allTasks;
+    //
+    //         if (tasks.isEmpty) {
+    //           return const Center(
+    //             child: Column(
+    //               mainAxisAlignment: MainAxisAlignment.center,
+    //               children: [
+    //                 Icon(Icons.assignment_outlined, color: Colors.white24, size: 64),
+    //                 SizedBox(height: 16),
+    //                 Text(
+    //                   '暂无任务',
+    //                   style: TextStyle(color: Colors.white24, fontSize: 18),
+    //                 ),
+    //               ],
+    //             ),
+    //           );
+    //         }
+    //
+    //         return ListView.builder(
+    //           padding: const EdgeInsets.only(top: 20, bottom: 20),
+    //           itemCount: tasks.length,
+    //           itemBuilder: (context, index) {
+    //             final task = tasks[index];
+    //             // 选取第一张本地图片作为缩略图
+    //             final localPath = task.files.isNotEmpty ? task.files.first.localPath : null;
+    //
+    //             return TaskItem(
+    //               title: task.title,
+    //               creationTime: _formatDateTime(task.createdAt),
+    //               // status: taskState.getStatusDisplay(task.status),
+    //               status: taskState.getStatusDisplay(task.status),
+    //               localThumbnailPath: localPath,
+    //               onView: () => debugPrint('查看任务: ${task.taskId}'),
+    //               onDelete: () => taskState.removeTask(task.taskId),
+    //             );
+    //           },
+    //         );
+    //       },
+    //     ),
+    //   ),
+    // );
+  }
 
-
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: ListView(
-        padding: const EdgeInsets.only(top: 20),
-          children: [
-            TaskItem(
-              title: '家庭生日相册',
-              creationTime: '2026-05-08 14:30',
-              status: '已完成',
-              thumbnailUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=2071&auto=format&fit=crop',
-              onView: () => debugPrint('查看任务'),
-              onDelete: () => debugPrint('删除任务'),
-            ),
-            TaskItem(
-              title: '公司宣传视频',
-              creationTime: '2026-05-07 09:15',
-              status: '已完成',
-              thumbnailUrl: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop',
-              onView: () => debugPrint('查看任务'),
-              onDelete: () => debugPrint('删除任务'),
-            ),
-            TaskItem(
-              title: '宠物成长记录',
-              creationTime: '2026-05-05 18:45',
-              status: '已完成',
-              thumbnailUrl: 'https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?q=80&w=2070&auto=format&fit=crop',
-              onView: () => debugPrint('查看任务'),
-              onDelete: () => debugPrint('删除任务'),
-            ),
-        ],
-      ),
-    );
+  String _formatDateTime(DateTime dt) {
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+           '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

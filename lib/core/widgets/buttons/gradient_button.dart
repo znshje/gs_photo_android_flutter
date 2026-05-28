@@ -2,26 +2,30 @@ import 'package:flutter/material.dart';
 
 class GradientButton extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
-  final double height;
+  final VoidCallback? onPressed;
+  final double? height;
   final double borderRadius;
 
   const GradientButton({
     super.key,
     required this.label,
-    required this.onPressed,
-    this.height = 64,
+    this.onPressed,
+    this.height,
     this.borderRadius = 32, // Stadium shape (half of height for full round)
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isEnabled = onPressed != null;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final buttonHeight = height ?? screenHeight * 0.08;
+
     return Container(
       width: double.infinity,
-      height: height,
+      height: buttonHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        gradient: const LinearGradient(
+        gradient: isEnabled ? const LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [
@@ -29,14 +33,21 @@ class GradientButton extends StatelessWidget {
             Color(0xFF0072FF), // 蓝色
             Color(0xFFB100FF), // 紫色
           ],
+        ) : LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Colors.grey.withValues(alpha: 0.3),
+            Colors.grey.withValues(alpha: 0.1),
+          ],
         ),
-        boxShadow: [
+        boxShadow: isEnabled ? [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
+            color: Colors.purple.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
-        ],
+        ] : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -50,19 +61,19 @@ class GradientButton extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
+                  style: TextStyle(
+                    color: isEnabled ? Colors.white : Colors.white24,
+                    fontSize: buttonHeight * 0.3, // 约按钮高度的 30%
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.2,
                   ),
                 ),
-                const Align(
+                Align(
                   alignment: Alignment.centerRight,
                   child: Icon(
                     Icons.chevron_right,
-                    color: Colors.white,
-                    size: 28,
+                    color: isEnabled ? Colors.white : Colors.white10,
+                    size: buttonHeight * 0.45,
                   ),
                 ),
               ],

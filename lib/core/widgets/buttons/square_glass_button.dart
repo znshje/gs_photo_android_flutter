@@ -5,18 +5,21 @@ class SquareGlassButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onPressed;
-  final double size;
+  final double? size;
 
   const SquareGlassButton({
     super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
-    this.size = 85.0,
+    this.size,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final buttonSize = size ?? screenWidth * 0.22;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -27,8 +30,8 @@ class SquareGlassButton extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
-                width: size,
-                height: size,
+                width: buttonSize,
+                height: buttonSize,
                 decoration: BoxDecoration(
                   // 深色磨砂背景
                   color: const Color(0xFFFFFFFF).withValues(alpha: 0.08),
@@ -56,7 +59,7 @@ class SquareGlassButton extends StatelessWidget {
                     ).createShader(bounds),
                     child: Icon(
                       icon,
-                      size: size * 0.45, // 图标大小根据按钮大小自动缩放
+                      size: buttonSize * 0.45, // 图标大小根据按钮大小自动缩放
                       color: Colors.white,
                     ),
                   ),
@@ -65,12 +68,12 @@ class SquareGlassButton extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: screenWidth * 0.025),
         Text(
           label,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.9),
-            fontSize: 13,
+            fontSize: buttonSize * 0.15,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.5,
           ),

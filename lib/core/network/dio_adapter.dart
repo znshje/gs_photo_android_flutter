@@ -1,25 +1,28 @@
 import 'package:dio/dio.dart';
-import '../config/app_config.dart';
+import '../config/api_config.dart';
+import '../state/user_state.dart';
 
 class DioAdapter {
   late final Dio dio;
-
+  late final BaseOptions options;
   DioAdapter() {
     BaseOptions options = BaseOptions(
-      baseUrl: "${AppConfig.baseUrl}:${AppConfig.port}${AppConfig.publicHead}",
-      connectTimeout: const Duration(milliseconds: AppConfig.connectTimeout),
-      receiveTimeout: const Duration(milliseconds: AppConfig.receiveTimeout),
+      baseUrl: "${ApiPaths.baseUrl}:${ApiPaths.port}${ApiPaths.publicHead}",
+      connectTimeout: const Duration(milliseconds:ApiPaths.connectTimeout),
+      receiveTimeout: const Duration(milliseconds: ApiPaths.receiveTimeout),
       headers: {
         'Content-Type': 'application/json',
       },
     );
-
+    this.options=options;
     dio = Dio(options);
 
+    // 自动注入认证 Token
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        if (AppConfig.authToken != null) {
-          options.headers['Authorization'] = 'Bearer ${AppConfig.authToken}';
+        final token = UserState.instance.token;
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },

@@ -58,9 +58,10 @@ class RecommendationPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: MasonryGridView.count(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        crossAxisCount: 2, // 两列布局
+      body: SafeArea(
+        child: MasonryGridView.count(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          crossAxisCount: 2, // 两列布局
         mainAxisSpacing: 4,
         crossAxisSpacing: 4,
         itemCount: items.length,
@@ -74,6 +75,6 @@ class RecommendationPage extends StatelessWidget {
           );
         },
       ),
-    );
+    ));
   }
 }

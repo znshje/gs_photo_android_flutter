@@ -88,55 +88,66 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: SciFiBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     '欢迎登录',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 32,
+                      fontSize: screenWidth * 0.08,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 50),
+                  SizedBox(height: screenHeight * 0.06),
                   
                   // 用户名输入框
                   _buildTextField(
+                    context: context,
                     controller: _usernameController,
                     hint: '用户名',
                     icon: Icons.person_outline,
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: screenHeight * 0.025),
                   
                   // 密码输入框
                   _buildTextField(
+                    context: context,
                     controller: _passwordController,
                     hint: '密码',
                     icon: Icons.lock_outline,
                     isPassword: true,
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: screenHeight * 0.04),
 
                   if (_isLoading)
-                    const CircularProgressIndicator(color: Colors.white)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+                      child: const CircularProgressIndicator(color: Colors.white),
+                    )
                   else ...[
                     GradientButton(
                       label: '登 录',
                       onPressed: _handleLogin,
+                      height: screenHeight * 0.08,
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: screenHeight * 0.025),
                     GlassButton(
                       label: '注 册',
                       onPressed: _handleRegister,
+                      height: screenHeight * 0.08,
                     ),
                   ],
+                  SizedBox(height: screenHeight * 0.05), // 底部缓冲，防止键盘顶起时溢出
                 ],
               ),
             ),
@@ -147,11 +158,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildTextField({
+    required BuildContext context,
     required TextEditingController controller,
     required String hint,
     required IconData icon,
     bool isPassword = false,
   }) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
@@ -165,9 +179,9 @@ class _LoginScreenState extends State<LoginScreen> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-          prefixIcon: Icon(icon, color: Colors.white),
+          prefixIcon: Icon(icon, color: Colors.white, size: screenHeight * 0.03),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: screenHeight * 0.02),
         ),
       ),
     );

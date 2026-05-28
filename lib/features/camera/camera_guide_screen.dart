@@ -107,6 +107,8 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -120,20 +122,20 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
             const Center(child: CircularProgressIndicator(color: Color(0xFF00C6FF))),
 
           // 2. 顶层：拍摄引导遮罩
-          _buildOverlayGuide(),
+          _buildOverlayGuide(context),
 
           // 3. 顶部返回按钮 (科幻磨砂风格)
           Positioned(
-            top: 50,
-            left: 20,
+            top: MediaQuery.of(context).padding.top + 10,
+            left: screenWidth * 0.05,
             child: GestureDetector(
               onTap: () => context.pop(),
               child: ClipOval(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
-                    width: 48,
-                    height: 48,
+                    width: screenWidth * 0.12,
+                    height: screenWidth * 0.12,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
@@ -142,10 +144,10 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
                         width: 1,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_back_ios_new_rounded,
                       color: Colors.white,
-                      size: 22,
+                      size: screenWidth * 0.055,
                     ),
                   ),
                 ),
@@ -157,14 +159,17 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
     );
   }
 
-  Widget _buildOverlayGuide() {
+  Widget _buildOverlayGuide(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return SafeArea(
       child: Column(
         children: [
           // 顶部：拍摄角度建议卡片
           Container(
-            margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.all(16),
+            margin: EdgeInsets.all(screenWidth * 0.05),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             width: double.infinity,
             decoration: BoxDecoration(
               color: const Color(0xFF4CAF50).withValues(alpha: 0.7),
@@ -173,17 +178,17 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
             ),
             child: Column(
               children: [
-                const Text(
+                Text(
                   '拍摄角度建议',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: screenWidth * 0.045,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 15),
+                SizedBox(height: screenWidth * 0.035),
                 // 引导示意图
-                _buildIllustration(),
+                _buildIllustration(screenWidth),
               ],
             ),
           ),
@@ -192,7 +197,7 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
 
           // 底部：操作按钮区（采用库中的按钮）
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(screenWidth * 0.06),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
@@ -211,28 +216,28 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
                     Expanded(
                       child: GlassButton(
                         label: '拍摄',
-                        height: 50,
+                        height: screenHeight * 0.065,
                         onPressed: () => debugPrint('切换拍摄模式'),
                         opacity: 0.3,
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    SizedBox(width: screenWidth * 0.05),
                     Expanded(
                       child: GlassButton(
                         label: '录制',
-                        height: 50,
+                        height: screenHeight * 0.065,
                         onPressed: () => debugPrint('切换录制模式'),
                         opacity: 0.1,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 25),
+                SizedBox(height: screenHeight * 0.03),
                 // 使用 GradientButton 作为主拍摄按钮
                 GradientButton(
                   label: '开 始 拍 摄',
                   onPressed: _takePicture,
-                  height: 64,
+                  height: screenHeight * 0.08,
                 ),
               ],
             ),
@@ -242,42 +247,42 @@ class _CameraGuideScreenState extends State<CameraGuideScreen> {
     );
   }
 
-  Widget _buildIllustration() {
+  Widget _buildIllustration(double screenWidth) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        const Column(
+        Column(
           children: [
-            Icon(Icons.arrow_downward, color: Colors.white, size: 32),
-            Text('2', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Icon(Icons.arrow_downward, color: Colors.white, size: screenWidth * 0.08),
+            const Text('2', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
         Stack(
           alignment: Alignment.center,
           children: [
             Container(
-              width: 70,
-              height: 70,
+              width: screenWidth * 0.18,
+              height: screenWidth * 0.18,
               decoration: BoxDecoration(
                 color: Colors.blue[700],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.view_in_ar, color: Colors.white, size: 35),
+              child: Icon(Icons.view_in_ar, color: Colors.white, size: screenWidth * 0.09),
             ),
             Positioned(
-              left: -5,
-              bottom: 5,
+              left: -screenWidth * 0.0125,
+              bottom: screenWidth * 0.0125,
               child: Transform.rotate(
                 angle: -0.5,
-                child: const Icon(Icons.navigation, color: Colors.yellow, size: 32),
+                child: Icon(Icons.navigation, color: Colors.yellow, size: screenWidth * 0.08),
               ),
             ),
           ],
         ),
-        const Column(
+        Column(
           children: [
-            Icon(Icons.arrow_downward, color: Colors.white, size: 32),
-            Text('3', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Icon(Icons.arrow_downward, color: Colors.white, size: screenWidth * 0.08),
+            const Text('3', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
       ],

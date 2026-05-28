@@ -3,31 +3,36 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
-import '../config/network_config.dart';
+import '../config/upload_file_config.dart';
 import 'dio_adapter.dart';
 import 'upload_models.dart';
+import 'dart:convert'; // 顶部引入
 
+import 'package:flutter/foundation.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:crypto/crypto.dart'; // 确保引入了 md5 依赖
 class UploadService {
   final DioAdapter _dioAdapter = DioAdapter();
 
   /// 获取文件 MIME 类型
   String _getMimeType(String filePath) {
-    final extension = p.extension(filePath).toLowerCase();
+    final extension = p.extension(filePath).toLowerCase().replaceFirst('.', '');
     switch (extension) {
-      case '.mp4':
-      case '.mov':
-        return 'video';
-      case '.jpg':
-      case '.jpeg':
-      case '.png':
-        return 'image';
-      case '.ply':
-        return 'model';
-      case '.zip':
-      case '.json':
-        return 'other';
+      case 'mp4':
+      case 'mov':
+        return 'video/$extension';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return 'image/$extension';
+      case 'ply':
+        return 'model/$extension';
+      case 'zip':
+      case 'json':
+        return 'other/$extension';
       default:
-        return 'other';
+        return 'other/$extension';
     }
   }
 
@@ -53,27 +58,38 @@ class UploadService {
     final request = UploadInitRequest(
       filename: fileName,
       fileSize: fileSize,
-      chunkSize: NetworkConfig.defaultChunkSize,
+      chunkSize: UploadFileConfig.defaultChunkSize,
       mimeType: mimeType,
       fileHash: fileHash,
     );
 
     final response = await _dioAdapter.post(
-      NetworkConfig.getUploadInitUrl(),
+      UploadFileConfig.getUploadInitUrl(),
       data: request.toJson(),
     );
-
+    // final url = UploadFileConfig.getUploadInitUrl();
+    // final bodyData = request.toJson();
+    // final headers = _dioAdapter.options.headers;
+    // // 👇 开始打印调试信息
+    // debugPrint('========== 发起上传初始化请求 ==========');
+    // debugPrint('➡️ [URL]: $url');
+    // debugPrint('➡️ [Headers]: $headers');
+    // // 使用 jsonEncode 可以把 Map 转成字符串，方便查看长串 JSON
+    // debugPrint('➡️ [Body]: ${jsonEncode(bodyData)}');
+    // debugPrint('➡️ [Reponse]: ${jsonEncode(response.data)}');
+    // debugPrint('========================================');
+    // // debugPrint()
     return UploadInitResponse.fromJson(response.data);
   }
 
-  /// 上传分片
+  /// 上传分
   Future<ChunkResponse> uploadChunk({
     required String uploadId,
     required int chunkIndex,
     required List<int> chunkData,
   }) async {
     final response = await _dioAdapter.put(
-      NetworkConfig.getUploadChunkUrl(uploadId),
+      UploadFileConfig.getUploadChunkUrl(uploadId),
       data: Stream.fromIterable([chunkData]),
       queryParameters: {'chunk_index': chunkIndex},
       options: Options(
@@ -90,7 +106,7 @@ class UploadService {
   /// 查询上传进度
   Future<UploadProgressResponse> checkProgress(String uploadId) async {
     final response = await _dioAdapter.get(
-      NetworkConfig.getUploadProgressUrl(uploadId),
+      UploadFileConfig.getUploadProgressUrl(uploadId),
     );
     return UploadProgressResponse.fromJson(response.data);
   }
@@ -109,7 +125,7 @@ class UploadService {
     );
 
     final response = await _dioAdapter.post(
-      NetworkConfig.getUploadMergeUrl(uploadId),
+      UploadFileConfig.getUploadMergeUrl(uploadId),
       data: request.toJson(),
     );
 
@@ -118,7 +134,7 @@ class UploadService {
 
   /// 取消上传
   Future<void> cancelUpload(String fileId) async {
-    await _dioAdapter.post(NetworkConfig.getUploadCancelUrl(fileId));
+    await _dioAdapter.post(UploadFileConfig.getUploadCancelUrl(fileId));
   }
 
   /// 高层封装：完整上传文件流程

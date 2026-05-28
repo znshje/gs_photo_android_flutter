@@ -7,6 +7,8 @@ class SciFiBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Stack(
       children: [
         // 1. 基础深色背景层
@@ -18,11 +20,11 @@ class SciFiBackground extends StatelessWidget {
         
         // 2. 左上角青色微光 (提供科幻感)
         Positioned(
-          top: -100,
-          left: -100,
+          top: -screenWidth * 0.25,
+          left: -screenWidth * 0.25,
           child: Container(
-            width: 400,
-            height: 400,
+            width: screenWidth,
+            height: screenWidth,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
@@ -37,11 +39,11 @@ class SciFiBackground extends StatelessWidget {
         
         // 3. 右下角紫色微光 (增加深度)
         Positioned(
-          bottom: -150,
-          right: -100,
+          bottom: -screenWidth * 0.35,
+          right: -screenWidth * 0.25,
           child: Container(
-            width: 500,
-            height: 500,
+            width: screenWidth * 1.25,
+            height: screenWidth * 1.25,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(

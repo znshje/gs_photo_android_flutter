@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../features/login/login_screen.dart';
 import '../../features/camera/camera_guide_screen.dart';
 import '../../features/creation/creation_page.dart';
@@ -37,6 +38,7 @@ const String cameraGuidePath = 'camera_guide';
 const String creationConfigPath = 'creation_config';
 const String uploadProgressPath = 'upload_progress';
 const String previewPath = 'preview';
+
 const String localViewerPath = 'local_viewer';
 
 /// 3. 核心路由配置树 (非 Shell 部分)
@@ -63,7 +65,14 @@ final List<AppRouteNode> featureRoutes = [
       // 重建上传进度页
       AppRouteNode(
         path: uploadProgressPath,
-        builder: (context, state) => const ReconstructionUploadPage(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return ReconstructionUploadPage(
+            images: extra?['images'] as List<XFile>?,
+            taskName: extra?['taskName'] as String?,
+            params: extra,
+          );
+        },
       ),
     ],
   ),
