@@ -28,8 +28,8 @@ class _CreationPageState extends State<CreationPage> {
   String _selectedAlgorithm = 'AnySplat';
   final List<String> _algorithms = [
     'AnySplat',
-    '3DGS-Vanilla',
-    'Mip-Splatting',
+    'Segment Then Splat',
+    'VGGT Omega',
   ];
 
   // 4. 图片素材

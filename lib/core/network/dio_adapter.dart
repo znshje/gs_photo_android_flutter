@@ -66,12 +66,14 @@ class DioAdapter {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
+    ProgressCallback? onSendProgress,
   }) async {
     return dio.post<T>(
       _normalizePath(path),
       data: data,
       queryParameters: queryParameters,
       options: options,
+      onSendProgress: onSendProgress,
     );
   }
 

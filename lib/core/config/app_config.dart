@@ -6,6 +6,9 @@ class AppConfig {
 
   static const String authLoginPath = '/auth/login';
   static const String authRegisterPath = '/auth/register';
+  static const String reconstructionCreatePath = '/reconstruction/tasks';
+  static const String reconstructionSubmitPath =
+      '/reconstruction/start/{task_id}';
   static const String reconstructionStaPath = '/reconstruction/start';
   static const String reconstructionStatusPath = '/reconstruction/status';
   static const String reconstructionDownloadPath = '/reconstruction/download';

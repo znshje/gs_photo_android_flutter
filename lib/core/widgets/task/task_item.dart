@@ -26,7 +26,10 @@ class TaskItem extends StatelessWidget {
   Widget build(BuildContext context) {
     ImageProvider? imageProvider;
     if (localThumbnailPath != null && localThumbnailPath!.isNotEmpty) {
-      imageProvider = FileImage(File(localThumbnailPath!));
+      final localFile = File(localThumbnailPath!);
+      if (localFile.existsSync()) {
+        imageProvider = FileImage(localFile);
+      }
     } else if (thumbnailUrl != null && thumbnailUrl!.isNotEmpty) {
       imageProvider = NetworkImage(thumbnailUrl!);
     }

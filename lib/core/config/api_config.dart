@@ -23,6 +23,21 @@ class ApiPaths {
   static const String uploadProgressPath = 'upload/{upload_id}/progress';
   static const String uploadMergePath = 'upload/{upload_id}/merge';
   static const String uploadCancelPath = 'upload/{file_id}/cancel';
+  // 重建接口
+  static const String reconstructionCreateTaskPath = 'reconstruction/tasks';
+  static const String reconstructionStartUploadedPath =
+      'reconstruction/start/{task_id}';
+  static const String reconstructionStatusPath =
+      'reconstruction/status/{task_id}';
+  static const String reconstructionCancelPath =
+      'reconstruction/cancel/{task_id}';
+  static const String reconstructionLogsPath = 'reconstruction/logs/{task_id}';
+  static const String reconstructionDiagnosticsPath =
+      'reconstruction/diagnostics/{task_id}';
+  static const String reconstructionDownloadPath =
+      'reconstruction/download/{task_id}';
+  static const String reconstructionAlgorithmsPath =
+      'reconstruction/algorithms';
   // 超时时间配置 (单位：毫秒)
   static const int connectTimeout = 10000;
   static const int receiveTimeout = 300000;

@@ -1,32 +1,33 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// 任务状态枚举
 enum TaskStatus {
-  draft, // 草稿状态（正在选择图片，尚未提交）
-  uploadingFiles, // 正在上传文件队列
-  pending, // 文件就绪，等待服务器调度
-  processing, // 服务器正在计算/重建中
-  completed, // 任务完成
-  failed, // 任务失败
+  draft,
+  uploadingFiles,
+  pending,
+  processing,
+  completed,
+  failed,
 }
 
-/// 文件同步状态枚举
 enum FileSyncStatus {
-  localOnly, // 仅在本地（待上传）
-  uploading, // 正在上传
-  synced, // 本地和云端一致（已上传）
-  downloading, // 正在从云端下载到本地
-  cloudOnly, // 仅在云端（本地被清理或在新设备登录）
+  localOnly,
+  uploading,
+  synced,
+  downloading,
+  cloudOnly,
 }
 
-/// 文件存储模型
 class StorageFile {
-  final String fileId; // 文件唯一标识
-  final String? localPath; // 本地绝对路径或相对路径
-  final String? remoteUrl; // 对象存储访问链接
+  final String fileId;
+  final String? localPath;
+  final String? remoteUrl;
   final FileSyncStatus status;
-  final String md5; // 用于校验文件完整性
-  final int size; // 文件大小 (bytes)
+  final String md5;
+  final int size;
 
   StorageFile({
     required this.fileId,
@@ -37,28 +38,55 @@ class StorageFile {
     required this.size,
   });
 
-  /// 检查本地是否可用
   bool get isLocalAvailable =>
       localPath != null &&
       (status == FileSyncStatus.synced || status == FileSyncStatus.localOnly);
 
   StorageFile copyWith({
+    String? fileId,
     String? localPath,
     String? remoteUrl,
     FileSyncStatus? status,
+    String? md5,
+    int? size,
   }) {
     return StorageFile(
-      fileId: fileId,
+      fileId: fileId ?? this.fileId,
       localPath: localPath ?? this.localPath,
       remoteUrl: remoteUrl ?? this.remoteUrl,
       status: status ?? this.status,
-      md5: md5,
-      size: size,
+      md5: md5 ?? this.md5,
+      size: size ?? this.size,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'file_id': fileId,
+      'local_path': localPath,
+      'remote_url': remoteUrl,
+      'status': status.name,
+      'md5': md5,
+      'size': size,
+    };
+  }
+
+  factory StorageFile.fromJson(Map<String, dynamic> json) {
+    return StorageFile(
+      fileId: json['file_id'] as String? ?? '',
+      localPath: json['local_path'] as String?,
+      remoteUrl: json['remote_url'] as String?,
+      status: _enumByName(
+        FileSyncStatus.values,
+        json['status'] as String?,
+        FileSyncStatus.localOnly,
+      ),
+      md5: json['md5'] as String? ?? '',
+      size: json['size'] as int? ?? 0,
     );
   }
 }
 
-/// 处理中的任务模型
 class ProcessingTask {
   final String taskId;
   final String title;
@@ -67,8 +95,6 @@ class ProcessingTask {
   final TaskStatus status;
   final DateTime createdAt;
   final DateTime? updatedAt;
-
-  // 修复 1：将其声明为可空类型（加问号），因为任务刚创建时没有结果文件
   final StorageFile? resultPly;
 
   ProcessingTask({
@@ -79,63 +105,144 @@ class ProcessingTask {
     required this.status,
     required this.createdAt,
     this.updatedAt,
-    this.resultPly, // 修复 2：将其加入构造函数
+    this.resultPly,
   });
 
   ProcessingTask copyWith({
+    String? taskId,
+    String? title,
+    Map<String, dynamic>? params,
     TaskStatus? status,
     List<StorageFile>? files,
     DateTime? updatedAt,
-    StorageFile? resultPly, // 修复 3：在 copyWith 中提供修改它的入口
+    StorageFile? resultPly,
   }) {
     return ProcessingTask(
-      taskId: taskId,
-      title: title,
-      params: params,
+      taskId: taskId ?? this.taskId,
+      title: title ?? this.title,
+      params: params ?? this.params,
       files: files ?? this.files,
       status: status ?? this.status,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      resultPly: resultPly ?? this.resultPly, // 修复 4：保留原有值或更新新值
+      resultPly: resultPly ?? this.resultPly,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'task_id': taskId,
+      'title': title,
+      'params': params,
+      'files': files.map((file) => file.toJson()).toList(),
+      'status': status.name,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'result_ply': resultPly?.toJson(),
+    };
+  }
+
+  factory ProcessingTask.fromJson(Map<String, dynamic> json) {
+    return ProcessingTask(
+      taskId: json['task_id'] as String? ?? '',
+      title: json['title'] as String? ?? '未命名任务',
+      params: Map<String, dynamic>.from(json['params'] as Map? ?? const {}),
+      files: (json['files'] as List? ?? const [])
+          .whereType<Map>()
+          .map((file) => StorageFile.fromJson(Map<String, dynamic>.from(file)))
+          .toList(),
+      status: _enumByName(
+        TaskStatus.values,
+        json['status'] as String?,
+        TaskStatus.draft,
+      ),
+      createdAt:
+          DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? ''),
+      resultPly: json['result_ply'] is Map
+          ? StorageFile.fromJson(
+              Map<String, dynamic>.from(json['result_ply'] as Map),
+            )
+          : null,
     );
   }
 }
 
-/// 全局任务状态管理
 class TaskState extends ChangeNotifier {
-  final Map<String, ProcessingTask> _tasks = {};
+  static const String _tasksKey = 'tasks.processing';
 
-  /// 获取所有任务列表 (按创建时间倒序)
+  final Map<String, ProcessingTask> _tasks = {};
+  bool _isRestored = false;
+
+  TaskState() {
+    unawaited(restoreTasks());
+  }
+
+  bool get isRestored => _isRestored;
+
   List<ProcessingTask> get allTasks {
     final list = _tasks.values.toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
 
-  /// 获取特定状态的任务
   List<ProcessingTask> getTasksByStatus(TaskStatus status) {
-    return _tasks.values.where((t) => t.status == status).toList();
+    return _tasks.values.where((task) => task.status == status).toList();
   }
 
-  /// 获取单个任务
   ProcessingTask? getTask(String taskId) => _tasks[taskId];
 
-  /// 添加或更新任务
-  void upsertTask(ProcessingTask task) {
-    _tasks[task.taskId] = task;
+  Future<void> restoreTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_tasksKey);
+    try {
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw) as List;
+        final restoredTasks = Map<String, ProcessingTask>.fromEntries(
+          decoded
+              .whereType<Map>()
+              .map(
+                (json) =>
+                    ProcessingTask.fromJson(Map<String, dynamic>.from(json)),
+              )
+              .where((task) => task.taskId.isNotEmpty)
+              .map((task) => MapEntry(task.taskId, task)),
+        );
+        restoredTasks.addAll(_tasks);
+        _tasks
+          ..clear()
+          ..addAll(restoredTasks);
+      }
+    } catch (e) {
+      debugPrint('[TaskState] restore tasks failed: $e');
+    }
+    _isRestored = true;
     notifyListeners();
   }
 
-  /// 快速更新任务状态
+  void upsertTask(ProcessingTask task) {
+    _tasks[task.taskId] = task;
+    _persistTasks();
+    notifyListeners();
+  }
+
+  void replaceTaskId(String oldTaskId, ProcessingTask task) {
+    _tasks.remove(oldTaskId);
+    _tasks[task.taskId] = task;
+    _persistTasks();
+    notifyListeners();
+  }
+
   void updateTaskStatus(String taskId, TaskStatus status) {
     final task = _tasks[taskId];
     if (task != null) {
       _tasks[taskId] = task.copyWith(status: status, updatedAt: DateTime.now());
+      _persistTasks();
       notifyListeners();
     }
   }
 
-  /// 更新任务中的文件状态
   void updateFileStatus(
     String taskId,
     String fileId,
@@ -144,7 +251,7 @@ class TaskState extends ChangeNotifier {
   }) {
     final task = _tasks[taskId];
     if (task != null) {
-      final fileIndex = task.files.indexWhere((f) => f.fileId == fileId);
+      final fileIndex = task.files.indexWhere((file) => file.fileId == fileId);
       if (fileIndex != -1) {
         final updatedFiles = List<StorageFile>.from(task.files);
         updatedFiles[fileIndex] = updatedFiles[fileIndex].copyWith(
@@ -155,18 +262,18 @@ class TaskState extends ChangeNotifier {
           files: updatedFiles,
           updatedAt: DateTime.now(),
         );
+        _persistTasks();
         notifyListeners();
       }
     }
   }
 
-  /// 删除任务
   void removeTask(String taskId) {
     _tasks.remove(taskId);
+    _persistTasks();
     notifyListeners();
   }
 
-  /// 转换状态为中文字符串
   String getStatusDisplay(TaskStatus status) {
     switch (status) {
       case TaskStatus.draft:
@@ -183,4 +290,21 @@ class TaskState extends ChangeNotifier {
         return '失败';
     }
   }
+
+  void _persistTasks() {
+    unawaited(_saveTasks());
+  }
+
+  Future<void> _saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(allTasks.map((task) => task.toJson()).toList());
+    await prefs.setString(_tasksKey, encoded);
+  }
+}
+
+T _enumByName<T extends Enum>(List<T> values, String? name, T fallback) {
+  for (final value in values) {
+    if (value.name == name) return value;
+  }
+  return fallback;
 }

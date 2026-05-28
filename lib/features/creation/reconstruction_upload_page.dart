@@ -1,35 +1,17 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:archive/archive_io.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
+import 'package:provider/provider.dart';
+
+import '../../core/network/reconstruction_models.dart';
 import '../../core/network/reconstruction_service.dart';
 import '../../core/network/upload_service.dart';
 import '../../core/state/task_state.dart';
 import '../../core/widgets/background/sci_fi_background.dart';
 import '../../core/widgets/buttons/gradient_button.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-
-Future<String> _compressImagesInBackground(Map<String, Object> args) async {
-  final imagePaths = args['imagePaths'] as List<String>;
-  final zipPath = args['zipPath'] as String;
-  final encoder = ZipFileEncoder();
-
-  encoder.create(zipPath);
-  try {
-    for (final imagePath in imagePaths) {
-      encoder.addFile(File(imagePath));
-    }
-  } finally {
-    encoder.close();
-  }
-
-  return zipPath;
-}
 
 class ReconstructionUploadPage extends StatefulWidget {
   final List<XFile>? images;
@@ -54,31 +36,30 @@ class _ReconstructionUploadPageState extends State<ReconstructionUploadPage> {
   final ImagePicker _picker = ImagePicker();
 
   List<XFile> _selectedImages = [];
-  String _currentStatus =
-      'ready'; // ready, compressing, uploading, processing, completed, failed
+  String _currentStatus = 'ready';
   String? _taskId;
   double _progress = 0.0;
   Timer? _statusTimer;
-
-  void _safeSetState(VoidCallback fn) {
-    if (!mounted) return;
-    setState(fn);
-  }
 
   @override
   void initState() {
     super.initState();
     if (widget.images != null && widget.images!.isNotEmpty) {
       _selectedImages = List.from(widget.images!);
-      // 延迟一帧执行，确保组件已挂载
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _startProcess();
       });
     }
   }
 
+  @override
+  void dispose() {
+    _statusTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
+    final images = await _picker.pickMultiImage();
     if (images.isNotEmpty) {
       setState(() {
         _selectedImages = images;
@@ -86,116 +67,51 @@ class _ReconstructionUploadPageState extends State<ReconstructionUploadPage> {
     }
   }
 
-  Future<String?> _compressImages() async {
-    _safeSetState(() {
-      _currentStatus = 'compressing';
-      _progress = 0.0;
-    });
-
-    try {
-      final directory = await getTemporaryDirectory();
-      final zipPath = p.join(
-        directory.path,
-        'upload_${DateTime.now().millisecondsSinceEpoch}.zip',
-      );
-      final imagePaths = _selectedImages.map((image) => image.path).toList();
-
-      final resultPath = await compute(_compressImagesInBackground, {
-        'imagePaths': imagePaths,
-        'zipPath': zipPath,
-      });
-
-      final zipSize = await File(resultPath).length();
-      debugPrint('[API] result compressImages zip=$resultPath size=$zipSize');
-      if (zipSize <= 22) {
-        debugPrint('[API] result compressImages failed reason=empty_zip');
-        return null;
-      }
-
-      return resultPath;
-    } catch (e) {
-      debugPrint('压缩失败: $e');
-      return null;
-    }
-  }
-
   Future<void> _startProcess() async {
-    if (_selectedImages.isEmpty) return;
-    debugPrint(
-      '[API] trigger button=start_reconstruction '
-      'images=${_selectedImages.length}',
-    );
-
-    final taskState = Provider.of<TaskState>(context, listen: false);
-    final String localTaskId = DateTime.now().millisecondsSinceEpoch.toString();
-
-    // 创建初始任务对象 (草稿 -> 开始压缩)
-    final initialTask = ProcessingTask(
-      taskId: localTaskId,
-      title: widget.taskName ?? '未命名任务',
-      params: widget.params ?? {},
-      files: _selectedImages
-          .map(
-            (f) => StorageFile(
-              fileId: f.name,
-              localPath: f.path,
-              status: FileSyncStatus.localOnly,
-              md5: '', // 初始占位
-              size: 0,
-            ),
-          )
-          .toList(),
-      status: TaskStatus.draft,
-      createdAt: DateTime.now(),
-    );
-    taskState.upsertTask(initialTask);
-
-    // 1. 压缩图片
-    final zipPath = await _compressImages();
-    if (zipPath == null) {
-      taskState.updateTaskStatus(localTaskId, TaskStatus.failed);
-      _safeSetState(() => _currentStatus = 'failed');
-      debugPrint(
-        '[API] result button=start_reconstruction failed reason=compress',
-      );
+    if (_selectedImages.isEmpty ||
+        _currentStatus == 'creating' ||
+        _currentStatus == 'uploading') {
       return;
     }
 
-    // 2. 分片上传
+    debugPrint(
+      '[API] trigger button=start_reconstruction images=${_selectedImages.length}',
+    );
+
+    final taskState = context.read<TaskState>();
+    final localTaskId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+    final taskName = _taskName;
+    final params = _buildReconstructionParams();
+    final algorithm = _normalizeAlgorithm(params['algorithm']?.toString());
+    final initialTask = ProcessingTask(
+      taskId: localTaskId,
+      title: taskName,
+      params: params,
+      files: _selectedImages.map(_storageFileFromImage).toList(),
+      status: TaskStatus.uploadingFiles,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    taskState.upsertTask(initialTask);
     _safeSetState(() {
-      _currentStatus = 'uploading';
-      _progress = 0.0;
+      _currentStatus = 'creating';
+      _progress = 0;
+      _taskId = null;
     });
-    taskState.updateTaskStatus(localTaskId, TaskStatus.uploadingFiles);
 
+    var activeTaskId = localTaskId;
     try {
-      final mergeRes = await _uploadService.uploadFile(
-        zipPath,
-        onProgress: (p) => _safeSetState(() => _progress = p),
+      final createdTask = await _reconstructionService.createTask(
+        ReconstructionCreateTaskRequest(
+          title: taskName,
+          params: params,
+          algorithm: algorithm,
+        ),
       );
-      if (!mounted) return;
+      final serverTaskId = createdTask?.taskId;
 
-      // 3. 启动重建任务
-      _safeSetState(() {
-        _currentStatus = 'processing';
-        _progress = 0.1;
-      });
-      taskState.updateTaskStatus(localTaskId, TaskStatus.pending);
-
-      final serverTaskId = await _reconstructionService.startReconstruction(
-        storageKey: mergeRes.storageKey,
-        extraParams: {
-          'task_name': widget.taskName ?? '未命名任务',
-          'type': widget.params?['type'] ?? 'object',
-          'resolution': widget.params?['resolution'] ?? 0.5,
-          'algorithm': widget.params?['algorithm'] ?? 'AnySplat',
-          "cuda_device": "1",
-          "python_path": "/data1/lzh/anaconda3/envs/anysplat/bin/python",
-          "anysplat_path": "/data1/lzh/lzy/AnySplat",
-        },
-      );
-
-      if (serverTaskId == null) {
+      if (serverTaskId == null || serverTaskId.isEmpty) {
         taskState.updateTaskStatus(localTaskId, TaskStatus.failed);
         _safeSetState(() => _currentStatus = 'failed');
         debugPrint(
@@ -204,79 +120,245 @@ class _ReconstructionUploadPageState extends State<ReconstructionUploadPage> {
         return;
       }
 
-      // 将本地临时 ID 映射为服务端真正的任务 ID (或者保持关联)
-      // 这里为了简单，我们更新状态并记录服务端 ID
+      taskState.replaceTaskId(
+        localTaskId,
+        initialTask.copyWith(
+          taskId: serverTaskId,
+          params: {...params, 'server_task_id': serverTaskId},
+          status: TaskStatus.uploadingFiles,
+          updatedAt: DateTime.now(),
+        ),
+      );
+      activeTaskId = serverTaskId;
+
+      _safeSetState(() {
+        _taskId = serverTaskId;
+        _currentStatus = 'uploading';
+        _progress = 0.05;
+      });
+
+      final uploadedFiles = <StorageFile>[];
+      final imageIds = <String>[];
+      for (var index = 0; index < _selectedImages.length; index++) {
+        final image = _selectedImages[index];
+        final result = await _uploadService.uploadFile(
+          image.path,
+          onProgress: (fileProgress) {
+            final progress = (index + fileProgress) / _selectedImages.length;
+            _safeSetState(() => _progress = (progress * 0.8).clamp(0.05, 0.85));
+          },
+        );
+        imageIds.add(result.fileId);
+        uploadedFiles.add(
+          _storageFileFromImage(image).copyWith(
+            fileId: result.fileId,
+            remoteUrl: result.storageKey,
+            status: FileSyncStatus.synced,
+            md5: result.fileHash,
+          ),
+        );
+        taskState.upsertTask(
+          initialTask.copyWith(
+            taskId: serverTaskId,
+            params: {
+              ...params,
+              'server_task_id': serverTaskId,
+              'image_ids': imageIds,
+            },
+            files: [
+              ...uploadedFiles,
+              ..._selectedImages
+                  .skip(index + 1)
+                  .map(_storageFileFromImage),
+            ],
+            status: TaskStatus.uploadingFiles,
+            updatedAt: DateTime.now(),
+          ),
+        );
+      }
+
       taskState.upsertTask(
         initialTask.copyWith(
-          status: TaskStatus.processing,
+          taskId: serverTaskId,
+          params: {
+            ...params,
+            'server_task_id': serverTaskId,
+            'image_ids': imageIds,
+          },
+          files: uploadedFiles,
+          status: TaskStatus.pending,
           updatedAt: DateTime.now(),
         ),
       );
 
       _safeSetState(() {
-        _taskId = serverTaskId;
+        _currentStatus = 'submitting';
+        _progress = 0.9;
       });
 
-      // 4. 轮询状态
-      _startPolling(serverTaskId, localTaskId);
+      final started = await _reconstructionService.startWithUploadedImages(
+        taskId: serverTaskId,
+        request: ReconstructionStartUploadedRequest(
+          imageFileIds: imageIds,
+          params: params,
+          algorithm: algorithm,
+        ),
+      );
+
+      if (started == null) {
+        taskState.updateTaskStatus(serverTaskId, TaskStatus.failed);
+        _safeSetState(() => _currentStatus = 'failed');
+        debugPrint(
+          '[API] result button=start_reconstruction failed reason=submit_task',
+        );
+        return;
+      }
+
+      taskState.updateTaskStatus(serverTaskId, TaskStatus.processing);
+      _safeSetState(() {
+        _currentStatus = 'processing';
+        _progress = 0.95;
+      });
+
+      _startPolling(serverTaskId);
       debugPrint(
         '[API] result button=start_reconstruction taskId=$serverTaskId',
       );
-
-      // 清理临时 zip
-      final zipFile = File(zipPath);
-      if (await zipFile.exists()) await zipFile.delete();
     } catch (e) {
-      debugPrint('处理流程失败: $e');
       debugPrint('[API] result button=start_reconstruction failed error=$e');
-      taskState.updateTaskStatus(localTaskId, TaskStatus.failed);
+      taskState.updateTaskStatus(activeTaskId, TaskStatus.failed);
       _safeSetState(() => _currentStatus = 'failed');
     }
   }
 
-  void _startPolling(String serverTaskId, String localTaskId) {
-    final taskState = Provider.of<TaskState>(context, listen: false);
-
+  void _startPolling(String taskId) {
+    final taskState = context.read<TaskState>();
+    _statusTimer?.cancel();
     _statusTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      final statusData = await _reconstructionService.checkStatus(serverTaskId);
+      final statusData = await _reconstructionService.checkStatus(taskId);
       if (statusData == null) return;
 
-      final status = statusData['status'];
-      debugPrint('任务状态: $status');
+      final serverStatus = statusData.status;
+      final taskStatus = _mapServerStatus(serverStatus);
+      final progress = _normalizeProgress(statusData.progress);
 
-      _safeSetState(() {
-        if (status == 'completed') {
-          timer.cancel();
+      taskState.updateTaskStatus(taskId, taskStatus);
+      debugPrint(
+        '[API] result reconstruction_poll taskId=$taskId status=$serverStatus',
+      );
+
+      if (taskStatus == TaskStatus.completed) {
+        timer.cancel();
+        _safeSetState(() {
           _currentStatus = 'completed';
           _progress = 1.0;
-          taskState.updateTaskStatus(localTaskId, TaskStatus.completed);
-          _downloadAndPreview(serverTaskId);
-        } else if (status == 'failed') {
-          timer.cancel();
-          _currentStatus = 'failed';
-          taskState.updateTaskStatus(localTaskId, TaskStatus.failed);
-        } else {
-          // 模拟进度增长 (0.1 ~ 0.9)
-          if (_progress < 0.9) _progress += 0.05;
-          taskState.updateTaskStatus(localTaskId, TaskStatus.processing);
+        });
+        _downloadAndPreview(taskId);
+        return;
+      }
+
+      if (taskStatus == TaskStatus.failed) {
+        timer.cancel();
+        _safeSetState(() => _currentStatus = 'failed');
+        return;
+      }
+
+      _safeSetState(() {
+        _currentStatus = 'processing';
+        if (progress != null) {
+          _progress = progress.clamp(0.05, 0.95);
+        } else if (_progress < 0.9) {
+          _progress += 0.05;
         }
       });
     });
   }
 
   Future<void> _downloadAndPreview(String taskId) async {
-    // 这里可以添加下载并跳转预览逻辑
-    debugPrint('任务完成，ID: $taskId');
+    debugPrint('[API] result reconstruction_completed taskId=$taskId');
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('重建完成！模型已准备就绪。')));
+    ).showSnackBar(const SnackBar(content: Text('重建完成，模型已准备就绪')));
   }
 
-  @override
-  void dispose() {
-    _statusTimer?.cancel();
-    super.dispose();
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
+  }
+
+  String get _taskName {
+    final name = widget.taskName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return '未命名任务';
+  }
+
+  Map<String, dynamic> _buildReconstructionParams() {
+    final raw = Map<String, dynamic>.from(widget.params ?? const {});
+    raw.remove('images');
+    raw['task_name'] = _taskName;
+    raw['image_count'] = _selectedImages.length;
+    raw['type'] = raw['type'] ?? 'object';
+    raw['resolution'] = raw['resolution'] ?? 0.5;
+    raw['algorithm'] = _normalizeAlgorithm(raw['algorithm']?.toString());
+    raw['cuda_device'] = raw['cuda_device'] ?? '1';
+    raw['python_path'] =
+        raw['python_path'] ?? '/data1/lzh/anaconda3/envs/anysplat/bin/python';
+    raw['algorithm_path'] = raw['algorithm_path'] ?? '/data1/lzh/lzy/AnySplat';
+    return raw;
+  }
+
+  String _normalizeAlgorithm(String? value) {
+    switch ((value ?? '').trim().toLowerCase()) {
+      case 'anysplat':
+        return 'anysplat';
+      case 'segment_then_splat':
+      case 'segment then splat':
+      case 'segment-then-splat':
+        return 'segment_then_splat';
+      case 'vggt_omega':
+      case 'vggt omega':
+      case 'vggt-omega':
+        return 'vggt_omega';
+      default:
+        return 'anysplat';
+    }
+  }
+
+  StorageFile _storageFileFromImage(XFile image) {
+    final file = File(image.path);
+    final size = file.existsSync() ? file.lengthSync() : 0;
+    return StorageFile(
+      fileId: image.name.isNotEmpty ? image.name : image.path,
+      localPath: image.path,
+      status: FileSyncStatus.localOnly,
+      md5: '',
+      size: size,
+    );
+  }
+
+  TaskStatus _mapServerStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return TaskStatus.completed;
+      case 'failed':
+      case 'cancelled':
+        return TaskStatus.failed;
+      case 'processing':
+      case 'manual_review':
+        return TaskStatus.processing;
+      case 'pending':
+      case 'queued':
+      default:
+        return TaskStatus.pending;
+    }
+  }
+
+  double? _normalizeProgress(Object? value) {
+    if (value is! num) return null;
+    final progress = value.toDouble();
+    if (progress > 1) return progress / 100;
+    return progress;
   }
 
   @override
@@ -340,25 +422,29 @@ class _ReconstructionUploadPageState extends State<ReconstructionUploadPage> {
   }
 
   Widget _buildStatusUI(BuildContext context) {
-    String message = '';
-    IconData icon = Icons.sync;
-    Color color = const Color(0xFF00C6FF);
+    var message = '';
+    var icon = Icons.sync;
+    var color = const Color(0xFF00C6FF);
 
     switch (_currentStatus) {
-      case 'compressing':
-        message = '正在打包素材...';
-        icon = Icons.folder_zip_outlined;
+      case 'creating':
+        message = '正在创建重建任务...';
+        icon = Icons.add_task;
         break;
       case 'uploading':
-        message = '正在分片上传...';
+        message = '正在上传图片素材...';
         icon = Icons.cloud_upload;
+        break;
+      case 'submitting':
+        message = '正在提交图片到重建任务...';
+        icon = Icons.send;
         break;
       case 'processing':
         message = '算法正在重建 3D 点云...';
         icon = Icons.memory;
         break;
       case 'completed':
-        message = '重建成功！';
+        message = '重建成功';
         icon = Icons.check_circle;
         color = Colors.green;
         break;
@@ -380,6 +466,7 @@ class _ReconstructionUploadPageState extends State<ReconstructionUploadPage> {
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 40),
         LinearProgressIndicator(
@@ -393,7 +480,7 @@ class _ReconstructionUploadPageState extends State<ReconstructionUploadPage> {
           '${(_progress * 100).toInt()}%',
           style: TextStyle(color: color, fontSize: 16),
         ),
-        if (_currentStatus == 'completed' && _taskId != null) ...[
+        if (_taskId != null) ...[
           const SizedBox(height: 12),
           Text(
             '任务 ID: $_taskId',

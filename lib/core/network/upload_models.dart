@@ -143,9 +143,9 @@ class MergeResponse {
   });
 
   factory MergeResponse.fromJson(Map<String, dynamic> json) => MergeResponse(
-    fileId: json['file_id'],
-    fileHash: json['file_hash'],
-    storageKey: json['storage_key'],
-    verified: json['verified'],
+    fileId: json['file_id'].toString(),
+    fileHash: json['file_hash'] as String? ?? '',
+    storageKey: json['storage_key'] as String? ?? '',
+    verified: json['verified'] as bool? ?? false,
   );
 }
